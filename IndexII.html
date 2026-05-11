@@ -38,9 +38,26 @@
         const { useState, useEffect, useCallback } = React;
 
         // --- Constants ---
-        const WOUND_TYPES = ["Laceration (แผลฉีกขาด)", "Abrasion (แผลถลอก)", "I&D (กรีดระบายหนอง)", "Puncture (แผลถูกแทง)", "Avulsion (แผลถูกกระชาก)", "Excision (การตัดเนื้อออก)"];
-        const BODY_LOCATIONS = ["Head (ศีรษะ)", "Face (ใบหน้า)", "Eye (ดวงตา)", "Ear (หู)", "Nose (จมูก)", "Mouth (ปาก)", "Neck (คอ)", "Shoulder (ไหล่)", "Chest (หน้าอก)", "Back (หลัง)", "Abdomen (หน้าท้อง)", "Arm (แขน)", "Hand (มือ)", "Finger (นิ้วมือ)", "Leg (ขา)", "Knee (เข่า)", "Foot (เท้า)", "Toe (นิ้วเท้า)"];
-        const PRIVILEGES = ["บัตรทอง (UC)", "ประกันสังคม (SSS)", "พรบ. (Motor Act)", "ข้าราชการ (CSMBS)", "รัฐวิสาหกิจ", "ประกันชีวิต/บริษัท", "เงินสด (Cash)", "อื่นๆ"];
+        const WOUND_TYPES = [
+            "Laceration (แผลฉีกขาด)", "Abrasion (แผลถลอก)", "I&D (กรีดระบายหนอง)", 
+            "Puncture (แผลถูกแทง)", "Avulsion (แผลถูกกระชาก)", "Excision (การตัดเนื้อออก)",
+            "Cellulitis", "Amputate", "สัตว์กัด (Animal bite)", "สัตว์ข่วน (Animal scratch)", 
+            "Burn", "ถอดเล็บ (Nail extraction)", "แผลเบาหวาน(DM Ulcer)", "แผลผ่าตัด (Surgical wound)", 
+            "Debridement", "Aspirate"
+        ];
+        
+        const BODY_LOCATIONS = [
+            "Head (ศีรษะ)", "Face (ใบหน้า)", "Eye (ดวงตา)", "Ear (หู)", "Nose (จมูก)", "Mouth (ปาก)", 
+            "Neck (คอ)", "Shoulder (ไหล่)", "Chest (หน้าอก)", "Back (หลัง)", "Abdomen (หน้าท้อง)", 
+            "Arm (แขน)", "Hand (มือ)", "Finger (นิ้วมือ)", "Leg (ขา)", "Knee (เข่า)", "Foot (เท้า)", "Toe (นิ้วเท้า)",
+            "Bottom (ก้น)", "Penis (องคชาต)", "Breast (หน้าอก/เต้านม)", "Vagina (ช่องคลอด)", "Scrotum (ถุงอัณฑะ)"
+        ];
+        
+        const PRIVILEGES = [
+            "บัตรทอง (UC)", "ประกันสังคม (SSS)", "พรบ. (Motor Act)", 
+            "ข้าราชการ (CSMBS)", "อปท.", "รัฐวิสาหกิจ", "ประกันชีวิต/บริษัท", 
+            "เงินสด (Cash)", "อื่นๆ"
+        ];
 
         // --- Utility: Safe string ---
         const safeStr = (val) => (val === null || val === undefined) ? '' : String(val);
@@ -49,7 +66,6 @@
         const AppointmentCard = ({ patient, appt }) => {
             const vaccines = appt.calculatedDates ? [...new Set(appt.calculatedDates.map(d => d.category))] : [];
             
-            // Helper to get descriptive category title
             const getCategoryTitle = (cat) => {
                 if (cat === 'dT') return 'วัคซีนบาดทะยัก';
                 if (cat === 'PCEC') return 'วัคซีนพิษสุนัขบ้า (Rabies Vaccine)';
@@ -72,7 +88,7 @@
                     <div className="space-y-1 mb-3 text-[11px]">
                         <div className="border-b border-dotted border-black pb-1 leading-relaxed flex items-baseline">
                             <strong className="text-[10px] shrink-0 mr-1">ชื่อ-สกุล:</strong> 
-                            <div className="font-black px-1 uppercase tracking-tight leading-tight">
+                            <div className="font-black px-1 uppercase tracking-tight leading-tight text-wrap">
                                 {patient ? `${safeStr(patient.pname)}${safeStr(patient.fname)} ${safeStr(patient.lname)}` : '..................................................................'}
                             </div>
                         </div>
@@ -94,7 +110,7 @@
                         <table className="w-full text-[9.5px] border-collapse border-x border-b border-black">
                             <tbody>
                                 <tr className="border-b border-black">
-                                    <td className="px-2.5 py-1.5 border-r border-black w-1/2"><strong>ลักษณะ:</strong> {appt.woundType ? appt.woundType.split(' ')[0] : '-'}</td>
+                                    <td className="px-2.5 py-1.5 border-r border-black w-1/2"><strong>ลักษณะ:</strong> {appt.woundType ? safeStr(appt.woundType.split(' ')[0]) : '-'}</td>
                                     <td className="px-2.5 py-1.5"><strong>ตำแหน่ง:</strong> {appt.woundLocation ? safeStr(appt.woundLocation) : '-'}</td>
                                 </tr>
                                 <tr>
@@ -210,13 +226,11 @@
                 let dates = [];
                 const start = appointment.visitDate;
                 
-                // Updated Logic for SPEEDA (Rabies Vaccine)
                 if (pcecSchedule === 'PCEC_IM_Essen') {
                     [0, 3, 7, 14, 28].forEach((d, i) => dates.push({ label: `SPEEDA #${i + 1} (D${d})`, date: addDays(start, d), desc: 'IM (0.5 ml) แขน 1 ข้าง', status: d === 0 ? 'ฉีดแล้ว' : 'นัดหมาย', category: 'PCEC' }));
                 } else if (pcecSchedule === 'PCEC_ID_TRC') {
                     [0, 3, 7, 28].forEach((d, i) => dates.push({ label: `SPEEDA #${i + 1} (D${d})`, date: addDays(start, d), desc: 'ID (0.1 ml) 2 ข้างพร้อมกัน', status: d === 0 ? 'ฉีดแล้ว' : 'นัดหมาย', category: 'PCEC' }));
                 } 
-                // Separate Booster Logic for ID and IM
                 else if (pcecSchedule === 'PCEC_booster_lt_6m_IM') {
                     dates.push({ label: 'SPEEDA Booster (D0)', date: start, desc: 'IM (0.5 ml) แขน 1 ข้าง', status: 'ฉีดแล้ว', category: 'PCEC' });
                 } else if (pcecSchedule === 'PCEC_booster_lt_6m_ID') {
@@ -265,7 +279,7 @@
                         setSelectedPatient(found);
                         setIsManualEntry(false);
                         showNotification("ค้นหาข้อมูลคนไข้สำเร็จ", "success");
-                    } else { showNotification("ไม่พบ HN นี้ในระบบ", "error"); }
+                    } else { showNotification("ไม่พบ HN: " + trimmedHn, "error"); }
                 } catch (err) { 
                     const msg = err.message === "NOT_PUBLISHED" ? "โปรดตรวจสอบการ Publish CSV ใน Sheets" : "เชื่อมต่อ Google Sheets ไม่ได้";
                     showNotification(msg, "error"); 
@@ -336,7 +350,7 @@
                         {mode === 'settings' ? (
                             <div className="max-w-xl mx-auto py-8 animate-in fade-in duration-300">
                                 <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-2xl space-y-4">
-                                    <h1 className="text-xl font-black text-slate-800 uppercase tracking-widest">Configuration</h1>
+                                    <h1 className="text-xl font-black text-slate-800 uppercase tracking-widest text-center">Settings</h1>
                                     <div className="space-y-4">
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase ml-3">Sheet ID</label>
@@ -396,12 +410,27 @@
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <input type="number" placeholder="จำนวนเข็ม" className="p-3 border border-slate-200 rounded-2xl text-xs font-black outline-none bg-white shadow-sm" value={appointment.stitchCount} onChange={e => setAppointment({...appointment, stitchCount: e.target.value})} />
-                                            <div className="grid grid-cols-2 gap-1">{['ทุกวัน', 'วันเว้นวัน'].map(f => (<button key={f} onClick={() => setAppointment({...appointment, dressingFrequency: f})} className={`py-2 rounded-2xl text-[10px] font-black border transition-all ${appointment.dressingFrequency === f ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>{f}</button>))}</div>
+                                            <div className="grid grid-cols-3 gap-1">
+                                                {['ทุกวัน', 'วันเว้นวัน', 'ไม่ต้องล้างแผล'].map(f => (
+                                                    <button 
+                                                        key={f} 
+                                                        onClick={() => setAppointment({...appointment, dressingFrequency: f})} 
+                                                        className={`py-2 rounded-2xl text-[9px] font-black border transition-all ${appointment.dressingFrequency === f ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                                                    >
+                                                        {f}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                         <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 shadow-inner">
                                             <div className="text-[10px] font-black text-slate-400 uppercase mb-2">SUTURE REMOVAL DATE</div>
                                             <input type="date" className="w-full p-3.5 border border-slate-200 rounded-2xl text-xs font-black outline-none bg-white mb-2 shadow-sm focus:ring-4 focus:ring-blue-100 transition-all" value={appointment.stitchRemovalDate} onChange={e => setAppointment({...appointment, stitchRemovalDate: e.target.value})} />
-                                            <div className="flex gap-2">{[5, 7, 10].map(d => (<button key={d} onClick={() => setAppointment({...appointment, stitchRemovalDate: addDays(appointment.visitDate, d)})} className="flex-1 bg-white hover:bg-blue-50 py-2 rounded-2xl border border-slate-200 text-[10px] font-black transition-all shadow-sm active:scale-95">+{d}</button>))}<button onClick={() => setAppointment({...appointment, stitchRemovalDate: ''})} className="flex-1 bg-rose-50 text-rose-600 border border-rose-100 px-2 rounded-2xl text-[10px] font-black hover:bg-rose-100 transition-all active:scale-95 text-xs font-bold uppercase tracking-widest">Clear</button></div>
+                                            <div className="flex gap-2">
+                                                {[5, 7, 10].map(d => (
+                                                    <button key={d} onClick={() => setAppointment({...appointment, stitchRemovalDate: addDays(appointment.visitDate, d)})} className="flex-1 bg-white hover:bg-blue-50 py-2 rounded-2xl border border-slate-200 text-[10px] font-black transition-all shadow-sm active:scale-95">+{d}</button>
+                                                ))}
+                                                <button onClick={() => setAppointment({...appointment, stitchRemovalDate: ''})} className="flex-1 bg-rose-50 text-rose-600 border border-rose-100 px-2 rounded-2xl text-[10px] font-black hover:bg-rose-100 transition-all active:scale-95 text-xs font-bold uppercase tracking-widest">Clear</button>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-3">
