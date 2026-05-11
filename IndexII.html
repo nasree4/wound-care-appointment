@@ -25,6 +25,8 @@
                 left: 0 !important; visibility: visible !important; display: flex !important;
             }
             img { max-height: 42px !important; }
+            /* กำหนดความจางของลายน้ำตอนพิมพ์เป็น 15% */
+            .watermark { opacity: 0.15 !important; }
         }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -74,7 +76,13 @@
 
             return (
                 <div id="print-area" className="w-[105mm] min-h-[148mm] bg-white p-[6mm] text-black border border-slate-300 shadow-2xl print:shadow-none print:border-none print:m-0 print:p-[6mm] overflow-hidden flex flex-col relative font-sans leading-tight">
-                    <div className="w-full flex justify-between items-center mb-3">
+                    
+                    {/* ลายน้ำ (Watermark Image) - ปรับ Opacity เป็น 0.15 */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.15] pointer-events-none watermark">
+                        <img src="https://img1.pic.in.th/images/1bf299103031b07d1.png" alt="Watermark" className="w-[85mm] h-auto object-contain" />
+                    </div>
+
+                    <div className="w-full flex justify-between items-center mb-3 relative z-10">
                         <div className="w-1/2 text-left pr-2 space-y-0.5">
                             <h2 className="text-[12.5px] font-black uppercase leading-tight tracking-tighter">ใบนัดรับบริการทางการแพทย์</h2>
                             <div className="text-[8.5px] text-slate-800 font-bold uppercase tracking-tight opacity-80">Hospital Appointment Card</div>
@@ -85,7 +93,7 @@
                         </div>
                     </div>
 
-                    <div className="space-y-1 mb-3 text-[11px]">
+                    <div className="space-y-1 mb-3 text-[11px] relative z-10">
                         <div className="border-b border-dotted border-black pb-1 leading-relaxed flex items-baseline">
                             <strong className="text-[10px] shrink-0 mr-1">ชื่อ-สกุล:</strong> 
                             <div className="font-black px-1 uppercase tracking-tight leading-tight text-wrap">
@@ -103,7 +111,7 @@
                         </div>
                     </div>
 
-                    <div className="mb-2.5">
+                    <div className="mb-2.5 relative z-10">
                         <div className="bg-slate-100 border border-black px-2 py-0.5 flex items-center gap-2 print:bg-transparent">
                             <span className="text-[9.5px] font-black uppercase tracking-widest leading-none">แผนการรักษา (Wound Care)</span>
                         </div>
@@ -122,7 +130,7 @@
                     </div>
 
                     {vaccines.map((cat) => (
-                        <div key={cat} className="mb-2.5 animate-in fade-in duration-500">
+                        <div key={cat} className="mb-2.5 animate-in fade-in duration-500 relative z-10">
                             <div className="bg-slate-100 border border-black px-2 py-0.5 flex items-center gap-2 print:bg-transparent">
                                 <span className="text-[9.5px] font-black uppercase tracking-widest leading-none">{getCategoryTitle(cat)}</span>
                             </div>
@@ -155,7 +163,7 @@
                     ))}
 
                     {appt.stitchRemovalDate && (
-                        <div className="border-[2px] border-black p-3.5 text-center rounded-[20px] bg-slate-50 print:bg-transparent mb-3.5 shadow-sm border-dashed">
+                        <div className="border-[2px] border-black p-3.5 text-center rounded-[20px] bg-slate-50 print:bg-transparent mb-3.5 shadow-sm border-dashed relative z-10">
                             <div className="text-[9.5px] font-black uppercase text-slate-700 flex items-center justify-center gap-2 leading-none mb-1.5">กำหนดนัดตัดไหม (Suture Removal)</div>
                             <div className="text-[17px] font-black underline decoration-double underline-offset-4 tracking-tighter">
                                 {new Date(appt.stitchRemovalDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -163,7 +171,7 @@
                         </div>
                     )}
 
-                    <div className="mt-auto flex flex-col gap-1.5">
+                    <div className="mt-auto flex flex-col gap-1.5 relative z-10">
                         <div className="text-center bg-red-600 py-2.5 rounded-3xl border border-red-700 print:bg-transparent print:border-black shadow-lg">
                             <div className="text-[13px] font-black text-white flex items-center justify-center gap-2 print:text-black uppercase tracking-[0.05em] leading-none">เจ็บป่วยฉุกเฉินโทร 1669</div>
                         </div>
@@ -279,7 +287,7 @@
                         setSelectedPatient(found);
                         setIsManualEntry(false);
                         showNotification("ค้นหาข้อมูลคนไข้สำเร็จ", "success");
-                    } else { showNotification("ไม่พบ HN: " + trimmedHn, "error"); }
+                    } else { showNotification("ไม่พบ HN นี้ในระบบ", "error"); }
                 } catch (err) { 
                     const msg = err.message === "NOT_PUBLISHED" ? "โปรดตรวจสอบการ Publish CSV ใน Sheets" : "เชื่อมต่อ Google Sheets ไม่ได้";
                     showNotification(msg, "error"); 
@@ -334,10 +342,10 @@
                     <div className="p-2 md:p-6 print:hidden">
                         <header className="mb-4 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-200 gap-4">
                             <div className="flex items-center gap-3">
-                                <div className="bg-emerald-600 p-2.5 rounded-2xl text-white shadow-lg font-black uppercase">W</div>
+                                <div className="bg-emerald-600 p-2.5 rounded-2xl text-white shadow-lg font-black uppercase tracking-widest">W</div>
                                 <div>
-                                    <h1 className="text-xl font-black text-slate-800 leading-none uppercase">Wound Care System</h1>
-                                    <div className="text-[10px] text-slate-500 font-bold uppercase mt-1 italic text-emerald-600">Google Sheets Connected</div>
+                                    <h1 className="text-xl font-black text-slate-800 leading-none uppercase tracking-tight">Wound Care System</h1>
+                                    <div className="text-[10px] text-slate-500 font-bold uppercase mt-1 italic">Google Sheets Connected</div>
                                 </div>
                             </div>
                             <div className="flex gap-2 w-full md:w-auto">
@@ -360,7 +368,7 @@
                                             <label className="text-[10px] font-black text-slate-400 uppercase ml-3">Apps Script URL</label>
                                             <input className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs focus:ring-4 focus:ring-emerald-500/10 outline-none" value={scriptUrl} onChange={e => setScriptUrl(e.target.value)} />
                                         </div>
-                                        <button onClick={() => setMode('app')} className="w-full bg-slate-900 text-white py-4 rounded-3xl font-black shadow-lg uppercase active:scale-95 transition-all">Go Back</button>
+                                        <button onClick={() => setMode('app')} className="w-full bg-slate-900 text-white py-4 rounded-3xl font-black shadow-lg uppercase active:scale-95 transition-all text-sm tracking-widest">Go Back</button>
                                     </div>
                                 </div>
                             </div>
@@ -369,14 +377,14 @@
                                 <div className="lg:col-span-5 space-y-4 pb-20">
                                     <div className="bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-md">
                                         <div className="flex justify-between items-center mb-4 px-2">
-                                            <h2 className="text-xs font-black flex items-center gap-2 text-emerald-700 uppercase tracking-widest font-black uppercase">PATIENT INFO</h2>
+                                            <h2 className="text-xs font-black flex items-center gap-2 text-emerald-700 uppercase tracking-widest font-black uppercase tracking-widest">PATIENT INFO</h2>
                                             <button onClick={toggleManualEntry} className="text-[10px] bg-slate-50 px-3 py-1.5 rounded-xl hover:bg-emerald-600 hover:text-white transition-all text-slate-700 font-black border active:scale-95 shadow-sm uppercase">
                                                 {isManualEntry ? 'Search' : 'Manual'}
                                             </button>
                                         </div>
                                         {!isManualEntry ? (
                                             <div className="flex gap-2 mb-4">
-                                                <input type="text" placeholder="ระบุ HN..." className="flex-1 p-4 rounded-2xl border border-slate-100 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-black bg-slate-50 transition-all" value={searchHn} onChange={e => setSearchHn(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSearch()} />
+                                                <input type="text" placeholder="ระบุ HN..." className="flex-1 p-4 rounded-2xl border border-slate-100 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-black bg-slate-50 transition-all placeholder:text-slate-300" value={searchHn} onChange={e => setSearchHn(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSearch()} />
                                                 <button onClick={handleSearch} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 rounded-2xl transition active:scale-90 shadow-xl shadow-emerald-100 disabled:bg-slate-300 font-black uppercase tracking-tighter">SEARCH</button>
                                             </div>
                                         ) : (
