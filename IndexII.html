@@ -4,34 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบใบนัดโรงพยาบาลเจาะไอร้อง</title>
-    <!-- 1. Load React and Babel -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- 2. Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 3. Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700;800&display=swap" rel="stylesheet">
+    
     <style>
         body { font-family: 'Sarabun', sans-serif; }
-        
-        /* CSS สำหรับโลโก้ขาวดำ */
         .logo-bw {
             filter: grayscale(100%) contrast(1.2);
             -webkit-filter: grayscale(100%) contrast(1.2);
         }
-
+        
+        /* ตั้งค่าสำหรับการพิมพ์ */
         @media print {
-            body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .print\:hidden { display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; }
-            
-            /* ปรับขนาดหน้ากระดาษให้ใหญ่ขึ้นอีก 10% (ประมาณ 127mm x 179mm) */
+            body { 
+                background: white !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+            }
+            .print\:hidden { 
+                display: none !important; 
+                visibility: hidden !important; 
+                height: 0 !important; 
+                overflow: hidden !important; 
+            }
             @page { 
-                size: 127mm 179mm; 
+                size: 127mm 179mm; /* ขนาดกระดาษที่กำหนด */
                 margin: 0; 
             }
-            
-            #print-area { 
+            .print-area { 
                 width: 127mm !important; 
                 height: 179mm !important; 
                 border: none !important; 
@@ -47,11 +53,9 @@
                 color: #000000 !important;
                 background: white !important;
             }
-            
-            img { max-height: 51px !important; } /* ขยายโลโก้ขึ้นตามสัดส่วน */
+            img { max-height: 51px !important; }
             .watermark { opacity: 0.15 !important; }
-            
-            #print-area * {
+            .print-area * {
                 color: #000000 !important;
                 border-color: #000000 !important;
             }
@@ -60,23 +64,21 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-        /* การแสดงผลบนหน้าจอให้คงสัดส่วนที่ขยาย */
+        
         @media screen {
-            #print-area {
+            .print-area {
                 width: 127mm;
                 height: 179mm;
             }
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-900">
+<body class="bg-slate-100 text-slate-900 overflow-x-hidden">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback } = React;
+        const { useState, useEffect } = React;
 
-        // --- Constants ---
         const WOUND_TYPES = [
             "Laceration (แผลฉีกขาด)", "Abrasion (แผลถลอก)", "I&D (กรีดระบายหนอง)", 
             "Puncture (แผลถูกแทง)", "Avulsion (แผลถูกกระชาก)", "Excision (การตัดเนื้อออก)",
@@ -98,10 +100,86 @@
             "เงินสด (Cash)", "อื่นๆ"
         ];
 
-        // --- Utility: Safe string ---
+        const DRAFT_KEY = 'woundcare_draft_v1';
+
+        const addDays = (dateStr, n) => {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const res = new Date(y, m - 1, d);
+            res.setDate(res.getDate() + n);
+            return `${res.getFullYear()}-${String(res.getMonth()+1).padStart(2,'0')}-${String(res.getDate()).padStart(2,'0')}`;
+        };
+
+        const addMonths = (dateStr, n) => {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const res = new Date(y, m - 1 + n, d);
+            return `${res.getFullYear()}-${String(res.getMonth()+1).padStart(2,'0')}-${String(res.getDate()).padStart(2,'0')}`;
+        };
+
+        const formatThaiDate = (dateStr, opts) => {
+            if (!dateStr || typeof dateStr !== 'string' || !dateStr.includes('-')) return '-';
+            const parts = dateStr.split('-').map(Number);
+            if (parts.length !== 3 || parts.some(isNaN)) return '-';
+            const [y, m, d] = parts;
+            const date = new Date(y, m - 1, d);
+            return date.toLocaleDateString('th-TH', opts);
+        };
+
+        const validateAppointment = (patient, appt) => {
+            const errors = [];
+            if (!patient) {
+                errors.push('กรุณาระบุข้อมูลหรือค้นหาคนไข้');
+                return errors;
+            }
+            if (!patient.hn || String(patient.hn).trim() === '') errors.push('HN ไม่ถูกต้อง');
+            if (!patient.fname || String(patient.fname).trim() === '') errors.push('กรุณากรอกชื่อคนไข้');
+
+            if (appt.weight !== '') {
+                const w = parseFloat(appt.weight);
+                if (isNaN(w) || w <= 0 || w > 300) errors.push('น้ำหนักต้องอยู่ระหว่าง 1–300 กก.');
+            }
+
+            if (appt.stitchCount !== '') {
+                const s = parseInt(appt.stitchCount);
+                if (isNaN(s) || s < 0 || s > 200) errors.push('จำนวนเข็มต้องอยู่ระหว่าง 0–200');
+            }
+
+            if (appt.stitchRemovalDate && appt.stitchRemovalDate <= appt.visitDate) {
+                errors.push('วันนัดตัดไหมต้องหลังวันรับบริการ');
+            }
+
+            return errors;
+        };
+
         const safeStr = (val) => (val === null || val === undefined) ? '' : String(val);
 
-        // --- Appointment Card Component ---
+        const defaultAppointment = {
+            visitDate: new Date().toLocaleDateString('en-CA'),
+            weight: '', privilege: '', woundType: '', woundLocation: '',
+            stitchCount: '', dressingFrequency: 'ทุกวัน', stitchRemovalDate: '',
+            staffName: 'เจ้าหน้าที่พยาบาล', calculatedDates: []
+        };
+
+        const ValidationErrors = ({ errors, onDismiss }) => {
+            if (!errors || errors.length === 0) return null;
+            return (
+                <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] bg-rose-50 border-2 border-rose-400 rounded-3xl shadow-2xl px-6 py-4 max-w-sm w-[90vw] animate-in slide-in-from-top-4">
+                    <div className="flex justify-between items-start gap-3">
+                        <div>
+                            <div className="font-black text-rose-700 text-sm mb-2 uppercase tracking-wide">กรุณาตรวจสอบข้อมูล</div>
+                            <ul className="space-y-1">
+                                {errors.map((e, i) => (
+                                    <li key={i} className="text-rose-600 text-xs font-bold flex items-start gap-1.5">
+                                        <span className="mt-0.5">•</span>{e}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <button onClick={onDismiss} className="text-rose-400 font-black text-lg leading-none hover:text-rose-600 shrink-0">✕</button>
+                    </div>
+                </div>
+            );
+        };
+
         const AppointmentCard = ({ patient, appt }) => {
             const vaccines = appt.calculatedDates ? [...new Set(appt.calculatedDates.map(d => d.category))] : [];
             
@@ -112,11 +190,11 @@
             };
 
             return (
-                <div id="print-area" className="bg-white p-[7mm] text-black border border-slate-300 shadow-2xl print:shadow-none print:border-none print:m-0 print:p-[7mm] overflow-hidden flex flex-col relative font-sans leading-tight">
+                <div className="print-area bg-white p-[7mm] text-black border border-slate-300 shadow-2xl print:shadow-none print:border-none print:m-0 print:p-[7mm] overflow-hidden flex flex-col relative font-sans leading-tight mx-auto">
                     
-                    {/* ลายน้ำ (Watermark Image) - ขยายขนาดขึ้น 10% จากเดิม 93.5 เป็น 103mm */}
+                    {/* ลายน้ำ */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.15] pointer-events-none watermark">
-                        <img src="https://img1.pic.in.th/images/1bf299103031b07d1.png" alt="Watermark" className="w-[103mm] h-auto object-contain logo-bw" />
+                        <img src="https://img1.pic.in.th/images/1bf299103031b07d1.png" alt="Watermark" className="w-[103mm] h-auto object-contain logo-bw" onError={(e) => e.target.style.display = 'none'} />
                     </div>
 
                     <div className="w-full flex justify-between items-center mb-4 relative z-10">
@@ -126,25 +204,41 @@
                             <div className="text-[9.5px] text-black font-bold leading-none mt-0.5">โรงพยาบาลเจาะไอร้อง จ.นราธิวาส</div>
                         </div>
                         <div className="w-1/2 flex justify-end">
-                            <img src="https://img2.pic.in.th/Gemini_Generated_Image_avkn8ravkn8ravkn.png" alt="Hospital Logo" className="max-h-[51px] object-contain logo-bw" />
+                            {/* เอาคลาส logo-bw ออกเพื่อให้โลโก้กลับมามีสี */}
+                            <img src="https://i.postimg.cc/GhNymcgG/r-pphaph2.png" alt="Hospital Logo" className="max-h-[51px] object-contain" onError={(e) => e.target.style.display = 'none'} />
                         </div>
                     </div>
 
-                    <div className="space-y-1.5 mb-4 text-[13px] relative z-10 text-black">
-                        <div className="border-b border-dotted border-black pb-1.5 leading-relaxed flex items-baseline">
-                            <strong className="text-[12px] shrink-0 mr-1 font-bold">ชื่อ-สกุล:</strong> 
-                            <div className="font-black px-1 uppercase tracking-tight leading-tight text-wrap flex-1">
-                                {patient ? `${safeStr(patient.pname)}${safeStr(patient.fname)} ${safeStr(patient.lname)}` : '..................................................................'}
+                    <div className="space-y-2.5 mb-4 relative z-10 text-black">
+                        {/* แถวที่ 1: ชื่อ-สกุล และ HN */}
+                        <div className="flex justify-between items-end border-b border-dotted border-black pb-1.5 gap-2">
+                            <div className="flex items-baseline flex-1 min-w-0">
+                                <strong className="text-[13px] shrink-0 mr-1 font-bold">ชื่อ-สกุล:</strong> 
+                                <div className="text-[15px] font-black px-1 uppercase tracking-tight leading-none truncate">
+                                    {patient && patient.fname ? `${safeStr(patient.pname)}${safeStr(patient.fname)} ${safeStr(patient.lname)}` : '.......................................'}
+                                </div>
+                            </div>
+                            <div className="text-[13px] shrink-0 font-bold whitespace-nowrap">
+                                <strong>HN:</strong> <span className="text-[16px] font-black ml-1">{patient && patient.hn ? safeStr(patient.hn) : '.......'}</span>
                             </div>
                         </div>
-                        <div className="grid grid-cols-4 gap-1 border-b border-dotted border-black py-2">
-                            <div className="col-span-1 font-bold"><strong>HN:</strong> {patient ? safeStr(patient.hn) : '.......'}</div>
-                            <div className="col-span-1 font-bold"><strong>นน.:</strong> {appt.weight ? safeStr(appt.weight) : '...'} กก.</div>
-                            <div className="col-span-2 text-right truncate font-bold"><strong>สิทธิ:</strong> {appt.privilege ? safeStr(appt.privilege) : '....'}</div>
+                        
+                        {/* แถวที่ 2: สิทธิ และ นน. */}
+                        <div className="flex justify-between items-end border-b border-dotted border-black pb-1.5 gap-2">
+                            <div className="flex items-baseline flex-1 min-w-0">
+                                <strong className="text-[13px] shrink-0 mr-1 font-bold">สิทธิ:</strong> 
+                                <div className="text-[15px] font-black px-1 uppercase tracking-tight leading-none truncate">
+                                    {appt.privilege ? safeStr(appt.privilege) : '.......................................'}
+                                </div>
+                            </div>
+                            <div className="text-[13px] shrink-0 font-bold whitespace-nowrap">
+                                <strong>นน.:</strong> <span className="text-[16px] font-black mx-1">{appt.weight ? safeStr(appt.weight) : '...'}</span> กก.
+                            </div>
                         </div>
-                        <div className="flex justify-between pt-1.5 text-[11.5px] font-black">
-                            <div><strong>วันที่นัด:</strong> {new Date(appt.visitDate).toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'})}</div>
-                            <div><strong>เวลาพิมพ์:</strong> {new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</div>
+
+                        <div className="flex justify-between pt-1.5 text-[9.5px] font-medium opacity-70">
+                            <div><strong className="font-bold">วันที่รับบริการ:</strong> {formatThaiDate(appt.visitDate, {day:'numeric', month:'long', year:'numeric'})}</div>
+                            <div><strong className="font-bold">เวลาพิมพ์:</strong> {new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</div>
                         </div>
                     </div>
 
@@ -187,7 +281,7 @@
                                                 <div className="text-[9px] text-black font-bold leading-none mt-0.5">{safeStr(item.desc)}</div>
                                             </td>
                                             <td className="px-2 py-1.5 border-r border-black font-black text-[12px] text-black text-center">
-                                                {new Date(item.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                                {formatThaiDate(item.date, { day: 'numeric', month: 'short', year: '2-digit' })}
                                             </td>
                                             <td className="px-2 py-1.5 text-center text-[9px] text-black font-black italic">
                                                 {safeStr(item.status) === 'ฉีดแล้ว' ? '✓ ฉีด' : '........'}
@@ -203,7 +297,7 @@
                         <div className="border-[2px] border-black p-3 text-center rounded-[15px] bg-gray-50 print:bg-transparent mb-4 shadow-sm border-dashed relative z-10">
                             <div className="text-[11.5px] font-black uppercase text-black flex items-center justify-center gap-2 leading-none mb-1.5">กำหนดนัดตัดไหม (Suture Removal)</div>
                             <div className="text-[21px] font-black text-black underline decoration-double underline-offset-4 tracking-tighter">
-                                {new Date(appt.stitchRemovalDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                {formatThaiDate(appt.stitchRemovalDate, { day: 'numeric', month: 'long', year: 'numeric' })}
                             </div>
                         </div>
                     )}
@@ -234,22 +328,65 @@
             const [isManualEntry, setIsManualEntry] = useState(false);
             const [loading, setLoading] = useState(false);
             const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+            const [validationErrors, setValidationErrors] = useState([]);
 
             const [sheetId, setSheetId] = useState('19T9hWcWuKN3ppXduyTsBhATN_a8GB5NSd3l_38s4AAE');
             const [scriptUrl, setScriptUrl] = useState('https://script.google.com/macros/s/AKfycbwz2m0JbmzhgKFlWUxcaXVCNYfn8yYD-o7UNQS9PDT7aEuZXKxnr3UlQN4w6ovuizM/exec'); 
 
             const [dtSchedule, setDtSchedule] = useState('none'); 
             const [pcecSchedule, setPcecSchedule] = useState('none');
-            const [appointment, setAppointment] = useState({
-                visitDate: new Date().toISOString().split('T')[0],
-                weight: '', privilege: '', woundType: '', woundLocation: '',
-                stitchCount: '', dressingFrequency: 'ทุกวัน', stitchRemovalDate: '',
-                staffName: 'เจ้าหน้าที่พยาบาล', calculatedDates: [] 
+
+            // โหลด draft จาก localStorage
+            const [appointment, setAppointment] = useState(() => {
+                try {
+                    const saved = localStorage.getItem(DRAFT_KEY);
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        return { ...defaultAppointment, ...parsed };
+                    }
+                } catch (e) { console.error(e) }
+                return defaultAppointment;
             });
+
+            useEffect(() => {
+                try {
+                    const { calculatedDates, ...rest } = appointment;
+                    localStorage.setItem(DRAFT_KEY, JSON.stringify(rest));
+                } catch (e) {}
+            }, [appointment]);
+
+            useEffect(() => {
+                try {
+                    const savedPatient = localStorage.getItem(DRAFT_KEY + '_patient');
+                    if (savedPatient) {
+                        const { patient: p, wasManual } = JSON.parse(savedPatient);
+                        setSelectedPatient(p);
+                        setIsManualEntry(wasManual === true);
+                    }
+                } catch (e) {}
+            }, []);
+
+            useEffect(() => {
+                try {
+                    if (selectedPatient) {
+                        localStorage.setItem(DRAFT_KEY + '_patient', JSON.stringify({
+                            patient: selectedPatient,
+                            wasManual: isManualEntry 
+                        }));
+                    }
+                } catch (e) {}
+            }, [selectedPatient, isManualEntry]);
 
             const showNotification = (msg, type = 'success') => {
                 setToast({ show: true, message: msg, type });
                 setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3500);
+            };
+
+            const clearDraft = () => {
+                try {
+                    localStorage.removeItem(DRAFT_KEY);
+                    localStorage.removeItem(DRAFT_KEY + '_patient');
+                } catch (e) {}
             };
 
             const toggleManualEntry = () => {
@@ -258,15 +395,7 @@
                 setSelectedPatient(nextManualState ? { hn: searchHn, pname: '', fname: '', lname: '', privilege: '', cid: '', birthday: '' } : null);
             };
 
-            const addDays = (d, n) => { 
-                const res = new Date(d); res.setDate(res.getDate() + n); 
-                return res.toISOString().split('T')[0]; 
-            };
-            const addMonths = (d, n) => { 
-                const res = new Date(d); res.setMonth(res.getMonth() + n); 
-                return res.toISOString().split('T')[0]; 
-            };
-
+            // คำนวณวันนัดวัคซีนอัตโนมัติ
             useEffect(() => {
                 let dates = [];
                 const start = appointment.visitDate;
@@ -275,8 +404,7 @@
                     [0, 3, 7, 14, 28].forEach((d, i) => dates.push({ label: `SPEEDA #${i + 1} (D${d})`, date: addDays(start, d), desc: 'IM (0.5 ml) แขน 1 ข้าง', status: d === 0 ? 'ฉีดแล้ว' : 'นัดหมาย', category: 'PCEC' }));
                 } else if (pcecSchedule === 'PCEC_ID_TRC') {
                     [0, 3, 7, 28].forEach((d, i) => dates.push({ label: `SPEEDA #${i + 1} (D${d})`, date: addDays(start, d), desc: 'ID (0.1 ml) 2 ข้างพร้อมกัน', status: d === 0 ? 'ฉีดแล้ว' : 'นัดหมาย', category: 'PCEC' }));
-                } 
-                else if (pcecSchedule === 'PCEC_booster_lt_6m_IM') {
+                } else if (pcecSchedule === 'PCEC_booster_lt_6m_IM') {
                     dates.push({ label: 'SPEEDA Booster (D0)', date: start, desc: 'IM (0.5 ml) แขน 1 ข้าง', status: 'ฉีดแล้ว', category: 'PCEC' });
                 } else if (pcecSchedule === 'PCEC_booster_lt_6m_ID') {
                     dates.push({ label: 'SPEEDA Booster (D0)', date: start, desc: 'ID (0.1 ml) 1 จุด', status: 'ฉีดแล้ว', category: 'PCEC' });
@@ -328,17 +456,21 @@
                 } catch (err) { 
                     const msg = err.message === "NOT_PUBLISHED" ? "โปรดตรวจสอบการ Publish CSV ใน Sheets" : "เชื่อมต่อ Google Sheets ไม่ได้";
                     showNotification(msg, "error"); 
-                }
-                finally { setLoading(false); }
+                } finally { setLoading(false); }
             };
 
             const handleSave = async () => {
-                if (!selectedPatient) return;
+                const errors = validateAppointment(selectedPatient, appointment);
+                if (errors.length > 0) {
+                    setValidationErrors(errors);
+                    return;
+                }
+
                 setLoading(true);
                 try {
                     const payload = {
                         visitDate: appointment.visitDate,
-                        patientHn: String(selectedPatient.hn),
+                        patientHn: `'${String(selectedPatient.hn)}`,
                         patientName: `${selectedPatient.pname}${selectedPatient.fname} ${selectedPatient.lname}`,
                         weight: appointment.weight,
                         privilege: appointment.privilege,
@@ -350,24 +482,57 @@
                         staffName: appointment.staffName,
                         createdAt: new Date().toLocaleString('th-TH')
                     };
-                    await fetch(scriptUrl, {
+                    
+                    const response = await fetch(scriptUrl, {
                         method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payload)
                     });
-                    showNotification("บันทึกนัดหมายลง Google Sheets สำเร็จ", "success");
-                } catch (err) { showNotification("บันทึกไม่สำเร็จ", "error"); }
-                finally { setLoading(false); }
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+
+                    let result = null;
+                    try { result = await response.json(); } catch (e) {}
+
+                    if (result && result.status === 'error') {
+                        throw new Error(result.message || 'Apps Script error');
+                    }
+
+                    showNotification("บันทึกนัดหมายลง Google Sheets สำเร็จ ✓", "success");
+                    clearDraft();
+
+                } catch (err) { 
+                    console.error('Save error:', err);
+                    showNotification(`บันทึกไม่สำเร็จ: ${err.message || 'ตรวจสอบการเชื่อมต่อ'}`, "error"); 
+                } finally { setLoading(false); }
             };
 
             const handlePrint = () => {
-                if (!selectedPatient) { showNotification("กรุณาระบุข้อมูลคนไข้ก่อนพิมพ์", "error"); return; }
+                const errors = validateAppointment(selectedPatient, appointment);
+                if (errors.length > 0) {
+                    setValidationErrors(errors);
+                    return;
+                }
                 window.print();
             };
 
+            const handleClearDraft = () => {
+                clearDraft();
+                setSelectedPatient(null);
+                setIsManualEntry(false);
+                setSearchHn('');
+                setDtSchedule('none');
+                setPcecSchedule('none');
+                setAppointment(defaultAppointment);
+                showNotification("ล้างข้อมูลแล้ว พร้อมเริ่มใหม่", "success");
+            };
+
             return (
-                <div className="min-h-screen relative overflow-x-hidden">
+                <div className="min-h-screen relative">
+                    <ValidationErrors errors={validationErrors} onDismiss={() => setValidationErrors([])} />
+
                     {/* Toast Notification */}
                     {toast.show && (
                         <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl animate-bounce ${toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`}>
@@ -376,111 +541,154 @@
                         </div>
                     )}
 
-                    <div className="p-2 md:p-6 print:hidden">
-                        <header className="mb-4 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-200 gap-4">
+                    {/* Loading Overlay */}
+                    {loading && (
+                        <div className="fixed inset-0 z-[150] bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                            <div className="bg-white rounded-3xl px-8 py-6 shadow-2xl flex items-center gap-4">
+                                <div className="w-6 h-6 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="font-black text-slate-700">กำลังดำเนินการ...</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="p-2 md:p-6 max-w-7xl mx-auto">
+                        <header className="print:hidden mb-4 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-200 gap-4">
                             <div className="flex items-center gap-3">
                                 <div className="bg-emerald-600 p-2.5 rounded-2xl text-white shadow-lg font-black uppercase tracking-widest">W</div>
                                 <div>
-                                    <h1 className="text-xl font-black text-slate-800 leading-none uppercase tracking-tight">Wound Care System</h1>
-                                    <div className="text-[10px] text-slate-500 font-bold uppercase mt-1 italic">Google Sheets Connected</div>
+                                    <h1 className="text-xl font-black text-slate-800 leading-none tracking-tight">ใบนัดรับบริการทางการแพทย์</h1>
+                                    <div className="text-[11px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Hospital Appointment Card</div>
                                 </div>
                             </div>
-                            <div className="flex gap-2 w-full md:w-auto">
-                                <button onClick={() => setMode(mode === 'settings' ? 'app' : 'settings')} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-50 text-slate-600 px-4 py-2.5 rounded-2xl font-black hover:bg-slate-100 transition active:scale-95 border border-slate-200 uppercase">Settings</button>
-                                <button onClick={handleSave} disabled={!selectedPatient || loading} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-2.5 rounded-2xl font-black hover:bg-green-700 disabled:bg-slate-200 transition shadow-md active:scale-95 uppercase">Save</button>
-                                <button onClick={handlePrint} disabled={!selectedPatient} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-2xl font-black hover:bg-slate-800 disabled:bg-slate-200 transition shadow-md active:scale-95 uppercase">Print</button>
+                            <div className="flex flex-wrap md:flex-nowrap gap-2 w-full md:w-auto">
+                                <button onClick={handleClearDraft} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-rose-50 text-rose-500 px-4 py-2.5 rounded-2xl font-black hover:bg-rose-100 transition active:scale-95 border border-rose-200 uppercase text-xs">Clear</button>
+                                <button onClick={() => setMode(mode === 'settings' ? 'app' : 'settings')} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-50 text-slate-600 px-4 py-2.5 rounded-2xl font-black hover:bg-slate-100 transition active:scale-95 border border-slate-200 uppercase text-xs">Settings</button>
+                                <button onClick={handleSave} disabled={loading} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-2xl font-black hover:bg-emerald-700 disabled:bg-slate-200 transition shadow-md active:scale-95 uppercase text-xs">Save</button>
+                                <button onClick={handlePrint} disabled={loading} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-2xl font-black hover:bg-slate-800 disabled:bg-slate-200 transition shadow-md active:scale-95 uppercase text-xs">Print</button>
                             </div>
                         </header>
 
                         {mode === 'settings' ? (
-                            <div className="max-w-xl mx-auto py-8 animate-in fade-in duration-300">
-                                <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-2xl space-y-4">
-                                    <h1 className="text-xl font-black text-slate-800 uppercase tracking-widest text-center">Settings</h1>
+                            <div className="print:hidden max-w-xl mx-auto py-8 animate-in fade-in duration-300">
+                                <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-xl space-y-6 relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-full h-2 bg-slate-800"></div>
+                                    <h1 className="text-xl font-black text-slate-800 uppercase tracking-widest text-center">Settings & Configuration</h1>
+                                    
+                                    <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-sm text-amber-800">
+                                        <strong>⚠️ คำเตือนเรื่อง PDPA:</strong> การดึงข้อมูล HN และชื่อคนไข้ผ่าน Google Sheets ที่แชร์แบบ Public อาจทำให้ข้อมูลส่วนบุคคลรั่วไหล แนะนำให้ใช้สำหรับทดสอบเท่านั้น หากใช้จริงควรปรับเป็น API ที่มีการยืนยันตัวตน (Authentication)
+                                    </div>
+
                                     <div className="space-y-4">
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase ml-3">Sheet ID</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase ml-3">Google Sheet ID (สำหรับดึงข้อมูลคนไข้)</label>
                                             <input className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs focus:ring-4 focus:ring-emerald-500/10 outline-none" value={sheetId} onChange={e => setSheetId(e.target.value)} />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase ml-3">Apps Script URL</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase ml-3">Apps Script Web App URL (สำหรับบันทึกข้อมูล)</label>
                                             <input className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs focus:ring-4 focus:ring-emerald-500/10 outline-none" value={scriptUrl} onChange={e => setScriptUrl(e.target.value)} />
                                         </div>
-                                        <button onClick={() => setMode('app')} className="w-full bg-slate-900 text-white py-4 rounded-3xl font-black shadow-lg uppercase active:scale-95 transition-all text-sm tracking-widest">Go Back</button>
+                                        <button onClick={() => setMode('app')} className="w-full bg-slate-900 text-white py-4 rounded-3xl font-black shadow-lg uppercase active:scale-95 transition-all text-sm tracking-widest mt-4">Go Back to App</button>
                                     </div>
                                 </div>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                                <div className="lg:col-span-5 space-y-4 pb-20">
+                                <div className="lg:col-span-5 space-y-4 pb-20 print:hidden">
+                                    
+                                    {(selectedPatient || appointment.woundType || appointment.privilege || appointment.weight) && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2 flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block"></span>
+                                            <span className="text-xs font-black text-amber-700">บันทึก Draft อัตโนมัติแล้ว (ข้อมูลจะไม่หายถ้ารีเฟรช)</span>
+                                        </div>
+                                    )}
+
                                     <div className="bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-md">
                                         <div className="flex justify-between items-center mb-4 px-2">
-                                            <h2 className="text-xs font-black flex items-center gap-2 text-emerald-700 uppercase tracking-widest font-black uppercase tracking-widest">PATIENT INFO</h2>
+                                            <h2 className="text-xs flex items-center gap-2 text-emerald-700 uppercase tracking-widest font-black">PATIENT INFO</h2>
                                             <button onClick={toggleManualEntry} className="text-[10px] bg-slate-50 px-3 py-1.5 rounded-xl hover:bg-emerald-600 hover:text-white transition-all text-slate-700 font-black border active:scale-95 shadow-sm uppercase">
-                                                {isManualEntry ? 'Search' : 'Manual'}
+                                                {isManualEntry ? 'เปลี่ยนไปใช้ช่องค้นหา' : 'กรอกข้อมูลเอง (Manual)'}
                                             </button>
                                         </div>
+                                        
                                         {!isManualEntry ? (
                                             <div className="flex gap-2 mb-4">
-                                                <input type="text" placeholder="ระบุ HN..." className="flex-1 p-4 rounded-2xl border border-slate-100 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-black bg-slate-50 transition-all placeholder:text-slate-300" value={searchHn} onChange={e => setSearchHn(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSearch()} />
-                                                <button onClick={handleSearch} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 rounded-2xl transition active:scale-90 shadow-xl shadow-emerald-100 disabled:bg-slate-300 font-black uppercase tracking-tighter">SEARCH</button>
+                                                <input type="text" placeholder="ระบุ HN..." className="flex-1 p-3.5 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-black bg-slate-50 transition-all placeholder:text-slate-400" value={searchHn} onChange={e => setSearchHn(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSearch()} />
+                                                <button onClick={handleSearch} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 rounded-2xl transition active:scale-95 shadow-lg shadow-emerald-100 disabled:bg-slate-300 font-black uppercase tracking-tighter">SEARCH</button>
                                             </div>
                                         ) : (
-                                            <div className="space-y-2.5 mb-4 animate-in fade-in duration-500">
-                                                <input type="text" placeholder="HN" className="w-full p-3 rounded-2xl border border-emerald-100 text-sm font-black bg-white outline-none focus:ring-2 focus:ring-emerald-50" value={selectedPatient?.hn || ''} onChange={e => setSelectedPatient({...selectedPatient, hn: e.target.value})} />
+                                            <div className="space-y-2.5 mb-4 animate-in fade-in duration-300 bg-slate-50 p-4 rounded-3xl border border-slate-100">
+                                                <input type="text" placeholder="HN" className="w-full p-3 rounded-2xl border border-slate-200 text-sm font-black bg-white outline-none focus:ring-2 focus:ring-emerald-100" value={selectedPatient?.hn || ''} onChange={e => setSelectedPatient({...selectedPatient, hn: e.target.value})} />
                                                 <div className="grid grid-cols-3 gap-2">
-                                                    <input type="text" placeholder="คำนำหน้า" className="p-3 rounded-2xl border border-emerald-100 text-sm bg-white font-bold" value={selectedPatient?.pname || ''} onChange={e => setSelectedPatient({...selectedPatient, pname: e.target.value})} />
-                                                    <input type="text" placeholder="ชื่อ" className="col-span-2 p-3 rounded-2xl border border-emerald-100 text-sm font-black bg-white" value={selectedPatient?.fname || ''} onChange={e => setSelectedPatient({...selectedPatient, fname: e.target.value})} />
+                                                    <input type="text" placeholder="คำนำหน้า" className="p-3 rounded-2xl border border-slate-200 text-sm bg-white font-bold outline-none focus:ring-2 focus:ring-emerald-100" value={selectedPatient?.pname || ''} onChange={e => setSelectedPatient({...selectedPatient, pname: e.target.value})} />
+                                                    <input type="text" placeholder="ชื่อ" className="col-span-2 p-3 rounded-2xl border border-slate-200 text-sm font-black bg-white outline-none focus:ring-2 focus:ring-emerald-100" value={selectedPatient?.fname || ''} onChange={e => setSelectedPatient({...selectedPatient, fname: e.target.value})} />
                                                 </div>
-                                                <input type="text" placeholder="นามสกุล" className="w-full p-3 rounded-2xl border border-emerald-100 text-sm font-black bg-white" value={selectedPatient?.lname || ''} onChange={e => setSelectedPatient({...selectedPatient, lname: e.target.value})} />
+                                                <input type="text" placeholder="นามสกุล" className="w-full p-3 rounded-2xl border border-slate-200 text-sm font-black bg-white outline-none focus:ring-2 focus:ring-emerald-100" value={selectedPatient?.lname || ''} onChange={e => setSelectedPatient({...selectedPatient, lname: e.target.value})} />
                                             </div>
                                         )}
-                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                        
+                                        <div className="space-y-3 mb-2">
                                             <div className="flex flex-col gap-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-tighter">Weight (kg)</label>
-                                                <input type="number" className="w-full p-3.5 rounded-2xl border border-slate-200 text-sm font-black outline-none bg-slate-50 focus:ring-2 focus:ring-emerald-100 transition-all" value={appointment.weight} onChange={e => setAppointment({...appointment, weight: e.target.value})} />
+                                                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-tighter">วันที่รับบริการ (Visit Date)</label>
+                                                <div className="flex gap-2">
+                                                    <input type="date" className="flex-1 p-3.5 rounded-2xl border border-slate-200 text-sm font-black outline-none bg-slate-50 focus:ring-2 focus:ring-emerald-100 transition-all" value={appointment.visitDate} onChange={e => setAppointment({...appointment, visitDate: e.target.value})} />
+                                                    <button onClick={() => setAppointment({...appointment, visitDate: new Date().toLocaleDateString('en-CA')})} className="bg-slate-100 px-4 rounded-2xl text-[10px] font-black uppercase hover:bg-slate-200 transition-all active:scale-95 text-slate-600">Today</button>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col gap-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-tighter">Privilege</label>
-                                                <select className="p-3.5 border border-slate-200 rounded-2xl text-xs bg-slate-50 font-black outline-none cursor-pointer focus:ring-2 focus:ring-emerald-100 transition-all" value={appointment.privilege} onChange={e => setAppointment({...appointment, privilege: e.target.value})}>
-                                                    <option value="">-- เลือกสิทธิ --</option>{PRIVILEGES.map(p => <option key={p} value={p}>{p}</option>)}
-                                                </select>
+                                            
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-tighter">Weight (kg)</label>
+                                                    <input type="number" min="1" max="300" step="0.1" className="w-full p-3.5 rounded-2xl border border-slate-200 text-sm font-black outline-none bg-slate-50 focus:ring-2 focus:ring-emerald-100 transition-all" value={appointment.weight} onChange={e => setAppointment({...appointment, weight: e.target.value})} />
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-tighter">Privilege</label>
+                                                    <select className="p-3.5 border border-slate-200 rounded-2xl text-xs bg-slate-50 font-black outline-none cursor-pointer focus:ring-2 focus:ring-emerald-100 transition-all" value={appointment.privilege} onChange={e => setAppointment({...appointment, privilege: e.target.value})}>
+                                                        <option value="">-- เลือกสิทธิ --</option>{PRIVILEGES.map(p => <option key={p} value={p}>{p}</option>)}
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                    
                                     <div className="bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-4 transition-all hover:shadow-md">
-                                        <h2 className="text-xs font-black text-emerald-700 uppercase tracking-widest uppercase font-black uppercase tracking-widest text-sm">TREATMENT PLAN</h2>
+                                        <h2 className="text-xs text-emerald-700 uppercase tracking-widest font-black">TREATMENT PLAN</h2>
                                         <div className="grid grid-cols-2 gap-3">
-                                            <select className="p-3 border border-slate-200 rounded-2xl text-xs bg-white font-bold outline-none shadow-sm" value={appointment.woundType} onChange={e => setAppointment({...appointment, woundType: e.target.value})}><option value="">-- แผล --</option>{WOUND_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
-                                            <select className="p-3 border border-slate-200 rounded-2xl text-xs bg-white font-bold outline-none shadow-sm" value={appointment.woundLocation} onChange={e => setAppointment({...appointment, woundLocation: e.target.value})}><option value="">-- ตำแหน่ง --</option>{BODY_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}</select>
+                                            <select className="p-3.5 border border-slate-200 rounded-2xl text-xs bg-white font-bold outline-none shadow-sm focus:ring-2 focus:ring-emerald-100" value={appointment.woundType} onChange={e => setAppointment({...appointment, woundType: e.target.value})}><option value="">-- แผล --</option>{WOUND_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                                            <select className="p-3.5 border border-slate-200 rounded-2xl text-xs bg-white font-bold outline-none shadow-sm focus:ring-2 focus:ring-emerald-100" value={appointment.woundLocation} onChange={e => setAppointment({...appointment, woundLocation: e.target.value})}><option value="">-- ตำแหน่ง --</option>{BODY_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}</select>
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
-                                            <input type="number" placeholder="จำนวนเข็ม" className="p-3 border border-slate-200 rounded-2xl text-xs font-black outline-none bg-white shadow-sm" value={appointment.stitchCount} onChange={e => setAppointment({...appointment, stitchCount: e.target.value})} />
+                                            <input type="number" min="0" max="200" placeholder="จำนวนเข็ม" className="p-3.5 border border-slate-200 rounded-2xl text-xs font-black outline-none bg-white shadow-sm focus:ring-2 focus:ring-emerald-100" value={appointment.stitchCount} onChange={e => setAppointment({...appointment, stitchCount: e.target.value})} />
                                             <div className="grid grid-cols-3 gap-1">
                                                 {['ทุกวัน', 'วันเว้นวัน', 'ไม่ต้องล้างแผล'].map(f => (
                                                     <button 
                                                         key={f} 
                                                         onClick={() => setAppointment({...appointment, dressingFrequency: f})} 
-                                                        className={`py-2 rounded-2xl text-[9px] font-black border transition-all ${appointment.dressingFrequency === f ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                                                        className={`py-2 rounded-2xl text-[9px] font-black border transition-all ${appointment.dressingFrequency === f ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'}`}
                                                     >
                                                         {f}
                                                     </button>
                                                 ))}
                                             </div>
                                         </div>
-                                        <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 shadow-inner">
-                                            <div className="text-[10px] font-black text-slate-400 uppercase mb-2 text-xs">SUTURE REMOVAL DATE</div>
+                                        <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 shadow-inner mt-2">
+                                            <div className="text-[10px] font-black text-slate-400 uppercase mb-2">SUTURE REMOVAL DATE (กำหนดตัดไหม)</div>
                                             <input type="date" className="w-full p-3.5 border border-slate-200 rounded-2xl text-xs font-black outline-none bg-white mb-2 shadow-sm focus:ring-4 focus:ring-blue-100 transition-all" value={appointment.stitchRemovalDate} onChange={e => setAppointment({...appointment, stitchRemovalDate: e.target.value})} />
                                             <div className="flex gap-2">
                                                 {[5, 7, 10].map(d => (
-                                                    <button key={d} onClick={() => setAppointment({...appointment, stitchRemovalDate: addDays(appointment.visitDate, d)})} className="flex-1 bg-white hover:bg-blue-50 py-2 rounded-2xl border border-slate-200 text-[10px] font-black transition-all shadow-sm active:scale-95">+{d}</button>
+                                                    <button key={d} onClick={() => setAppointment({...appointment, stitchRemovalDate: addDays(appointment.visitDate, d)})} className="flex-1 bg-white hover:bg-blue-50 py-2.5 rounded-2xl border border-slate-200 text-[10px] font-black transition-all shadow-sm active:scale-95 text-slate-700">+{d} วัน</button>
                                                 ))}
-                                                <button onClick={() => setAppointment({...appointment, stitchRemovalDate: ''})} className="flex-1 bg-rose-50 text-rose-600 border border-rose-100 px-2 rounded-2xl text-[10px] font-black hover:bg-rose-100 transition-all active:scale-95 text-xs font-bold uppercase tracking-widest">Clear</button>
+                                                <button onClick={() => setAppointment({...appointment, stitchRemovalDate: ''})} className="flex-1 bg-rose-50 text-rose-600 border border-rose-100 px-2 rounded-2xl text-[10px] font-black hover:bg-rose-100 transition-all active:scale-95 uppercase tracking-widest">Clear</button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-3">
-                                        <h2 className="text-xs font-black text-emerald-700 uppercase tracking-widest font-black uppercase text-sm">VACCINES SCHEDULE</h2>
-                                        <select className="w-full p-4 rounded-2xl border border-slate-200 text-xs font-black bg-white outline-none shadow-sm focus:ring-4 focus:ring-blue-100 transition-all" value={dtSchedule} onChange={e => setDtSchedule(e.target.value)}><option value="none">-- บาดทะยัก (dT) --</option><option value="dT_booster">dT : กระตุ้น 1 เข็ม</option><option value="dT_new">dT : เริ่มฉีดใหม่ (3 เข็ม)</option></select>
+                                    
+                                    <div className="bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-3 transition-all hover:shadow-md">
+                                        <h2 className="text-xs text-emerald-700 uppercase tracking-widest font-black">VACCINES SCHEDULE</h2>
+                                        <select className="w-full p-4 rounded-2xl border border-slate-200 text-xs font-black bg-white outline-none shadow-sm focus:ring-4 focus:ring-blue-100 transition-all" value={dtSchedule} onChange={e => setDtSchedule(e.target.value)}>
+                                            <option value="none">-- บาดทะยัก (dT) --</option>
+                                            <option value="dT_booster">dT : กระตุ้น 1 เข็ม</option>
+                                            <option value="dT_new">dT : เริ่มฉีดใหม่ (3 เข็ม)</option>
+                                        </select>
                                         <select className="w-full p-4 rounded-2xl border border-slate-200 text-xs font-black bg-white outline-none shadow-sm focus:ring-4 focus:ring-blue-100 transition-all" value={pcecSchedule} onChange={e => setPcecSchedule(e.target.value)}>
                                             <option value="none">-- พิษสุนัขบ้า (Rabies Vaccine) --</option>
                                             <optgroup label="Initial Course">
@@ -498,15 +706,12 @@
                                         </select>
                                     </div>
                                 </div>
-                                <div className="lg:col-span-7 flex justify-center items-start overflow-auto pb-20">
+                                
+                                <div className="lg:col-span-7 flex justify-center items-start overflow-auto pb-20 pt-4 lg:pt-0">
                                     <AppointmentCard patient={selectedPatient} appt={appointment} />
                                 </div>
                             </div>
                         )}
-                    </div>
-                    {/* Layer สำหรับสั่งพิมพ์ */}
-                    <div className="hidden print:block fixed inset-0 bg-white">
-                        <AppointmentCard patient={selectedPatient} appt={appointment} />
                     </div>
                 </div>
             );
