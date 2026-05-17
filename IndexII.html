@@ -124,6 +124,40 @@
             return date.toLocaleDateString('th-TH', opts);
         };
 
+        const calculateAge = (birthday) => {
+            if (!birthday || birthday === '-' || typeof birthday !== 'string') return '';
+            let birthDate;
+            
+            // รองรับรูปแบบ DD/MM/YYYY หรือ YYYY-MM-DD
+            if (birthday.includes('/')) {
+                const parts = birthday.split('/');
+                if (parts.length === 3) {
+                    let year = parseInt(parts[2], 10);
+                    if (year > 2400) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+                    birthDate = new Date(year, parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+                }
+            } else if (birthday.includes('-')) {
+                const parts = birthday.split('-');
+                if (parts.length === 3) {
+                    let year = parseInt(parts[0], 10);
+                    if (year > 2400) year -= 543;
+                    birthDate = new Date(year, parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                }
+            } else {
+                birthDate = new Date(birthday);
+            }
+
+            if (!birthDate || isNaN(birthDate.getTime())) return '';
+
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age >= 0 ? age : '';
+        };
+
         const validateAppointment = (patient, appt) => {
             const errors = [];
             if (!patient) {
@@ -214,9 +248,18 @@
                         <div className="flex justify-between items-end border-b border-dotted border-black pb-1.5 gap-2">
                             <div className="flex items-baseline flex-1 min-w-0">
                                 <strong className="text-[13px] shrink-0 mr-1 font-bold">ชื่อ-สกุล:</strong> 
-                                <div className="text-[15px] font-black px-1 uppercase tracking-tight leading-none truncate">
-                                    {patient && patient.fname ? `${safeStr(patient.pname)}${safeStr(patient.fname)} ${safeStr(patient.lname)}` : '.......................................'}
-                                </div>
+                                {patient && patient.fname ? (
+                                    <div className="text-[15px] font-black px-1 uppercase tracking-tight leading-none flex-1 min-w-0 flex items-baseline">
+                                        <span className="truncate">{`${safeStr(patient.pname)}${safeStr(patient.fname)} ${safeStr(patient.lname)}`}</span>
+                                        {patient.birthday && calculateAge(patient.birthday) !== '' && (
+                                            <span className="ml-1.5 shrink-0 whitespace-nowrap text-[14px]">อายุ {calculateAge(patient.birthday)} ปี</span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-[15px] font-black px-1 uppercase tracking-tight leading-none truncate flex-1 min-w-0">
+                                        .......................................
+                                    </div>
+                                )}
                             </div>
                             <div className="text-[13px] shrink-0 font-bold whitespace-nowrap">
                                 <strong>HN:</strong> <span className="text-[16px] font-black ml-1">{patient && patient.hn ? safeStr(patient.hn) : '.......'}</span>
