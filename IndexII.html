@@ -14,8 +14,9 @@
     <style>
         body { font-family: 'Sarabun', sans-serif; }
         .logo-bw {
-            filter: grayscale(100%) contrast(1.2);
-            -webkit-filter: grayscale(100%) contrast(1.2);
+            /* ดัน Contrast ขั้นสุด และลด Brightness เพื่อบังคับสีให้เป็น #000000 ขาวดำ 100% */
+            filter: grayscale(100%) brightness(60%) contrast(2000%);
+            -webkit-filter: grayscale(100%) brightness(60%) contrast(2000%);
         }
         
         /* ตั้งค่าสำหรับการพิมพ์ */
@@ -234,11 +235,11 @@
                     <div className="w-full flex justify-between items-center mb-4 relative z-10">
                         <div className="w-1/2 text-left pr-2 space-y-1">
                             <h2 className="text-[17px] font-black uppercase leading-tight tracking-tighter text-black">ใบนัดรับบริการทางการแพทย์</h2>
-                            <div className="text-[11.5px] text-black font-bold uppercase tracking-tight opacity-90">Hospital Appointment Card</div>
+                            <div className="text-[10.5px] text-black font-bold uppercase tracking-tight opacity-90">Hospital Appointment Card</div>
                             <div className="text-[10.5px] text-black font-bold leading-none mt-0.5">โรงพยาบาลเจาะไอร้อง จ.นราธิวาส</div>
                         </div>
                         <div className="w-1/2 flex justify-end">
-                            <img src="https://img2.pic.in.th/287f1f6b3482c3114.jpg" alt="Hospital Logo" className="header-logo max-h-[85px] object-contain mix-blend-multiply" onError={(e) => e.target.style.display = 'none'} />
+                            <img src="https://img2.pic.in.th/287f1f6b3482c3114.jpg" alt="Hospital Logo" className="header-logo max-h-[85px] object-contain mix-blend-multiply logo-bw" onError={(e) => e.target.style.display = 'none'} />
                         </div>
                     </div>
 
