@@ -35,14 +35,14 @@
                 overflow: hidden !important; 
             }
             @page { 
-                size: 127mm 179mm; /* ขนาดกระดาษที่กำหนด */
+                size: 105mm 148mm; /* ปรับขนาดกระดาษเป็น A6 มาตรฐาน */
                 margin: 0; 
             }
             .print-area { 
-                width: 127mm !important; 
-                height: 179mm !important; 
+                width: 105mm !important; 
+                height: 148mm !important; 
                 border: none !important; 
-                padding: 7mm !important; 
+                padding: 4mm !important; /* ลดขอบกระดาษลงเพื่อเพิ่มพื้นที่ด้านใน */
                 margin: 0 !important; 
                 box-sizing: border-box; 
                 box-shadow: none !important; 
@@ -54,7 +54,7 @@
                 color: #000000 !important;
                 background: white !important;
             }
-            img.header-logo { max-height: 75px !important; }
+            img.header-logo { max-height: 60px !important; }
             .watermark { opacity: 0.25 !important; }
             .print-area * {
                 color: #000000 !important;
@@ -68,8 +68,8 @@
         
         @media screen {
             .print-area {
-                width: 127mm;
-                height: 179mm;
+                width: 105mm; /* พรีวิวหน้าจอให้ตรงกับขนาด A6 */
+                height: 148mm;
             }
         }
     </style>
@@ -225,108 +225,108 @@
             };
 
             return (
-                <div className="print-area bg-white p-[7mm] text-black border border-slate-300 shadow-2xl print:shadow-none print:border-none print:m-0 print:p-[7mm] overflow-hidden flex flex-col relative font-sans leading-tight mx-auto">
+                <div className="print-area bg-white p-[4mm] text-black border border-slate-300 shadow-2xl print:shadow-none print:border-none print:m-0 print:p-[4mm] overflow-hidden flex flex-col relative font-sans leading-tight mx-auto">
                     
                     {/* ลายน้ำ */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.25] pointer-events-none watermark">
-                        <img src="https://img1.pic.in.th/images/1bf299103031b07d1.png" alt="Watermark" className="w-[103mm] h-auto object-contain logo-bw" onError={(e) => e.target.style.display = 'none'} />
+                        <img src="https://img1.pic.in.th/images/1bf299103031b07d1.png" alt="Watermark" className="w-[75mm] h-auto object-contain logo-bw" onError={(e) => e.target.style.display = 'none'} />
                     </div>
 
-                    <div className="w-full flex justify-between items-center mb-4 relative z-10">
-                        <div className="w-1/2 text-left pr-2 space-y-1">
-                            <h2 className="text-[17px] font-black uppercase leading-tight tracking-tighter text-black">ใบนัดรับบริการทางการแพทย์</h2>
-                            <div className="text-[10.5px] text-black font-bold uppercase tracking-tight opacity-90">Hospital Appointment Card</div>
-                            <div className="text-[10.5px] text-black font-bold leading-none mt-0.5">โรงพยาบาลเจาะไอร้อง จ.นราธิวาส</div>
+                    <div className="w-full flex justify-between items-center mb-1 relative z-10">
+                        <div className="w-1/2 text-left pr-1 space-y-0.5">
+                            <h2 className="text-[13px] font-black uppercase leading-none tracking-tighter text-black">ใบนัดรับบริการทางการแพทย์</h2>
+                            <div className="text-[8px] text-black font-bold uppercase tracking-tight opacity-90">Hospital Appointment Card</div>
+                            <div className="text-[8px] text-black font-bold leading-none">โรงพยาบาลเจาะไอร้อง จ.นราธิวาส</div>
                         </div>
                         <div className="w-1/2 flex justify-end">
-                            <img src="https://img2.pic.in.th/287f1f6b3482c3114.jpg" alt="Hospital Logo" className="header-logo max-h-[85px] object-contain mix-blend-multiply logo-bw" onError={(e) => e.target.style.display = 'none'} />
+                            <img src="https://img2.pic.in.th/287f1f6b3482c3114.jpg" alt="Hospital Logo" className="header-logo max-h-[45px] object-contain mix-blend-multiply logo-bw" onError={(e) => e.target.style.display = 'none'} />
                         </div>
                     </div>
 
-                    <div className="space-y-2.5 mb-4 relative z-10 text-black">
+                    <div className="space-y-1 mb-1.5 relative z-10 text-black">
                         {/* แถวที่ 1: ชื่อ-สกุล และ HN */}
-                        <div className="flex justify-between items-end border-b border-dotted border-black pb-1.5 gap-2">
+                        <div className="flex justify-between items-end border-b border-dotted border-black pb-0.5 gap-1">
                             <div className="flex items-baseline flex-1 min-w-0">
-                                <strong className="text-[15px] shrink-0 mr-1 font-bold">ชื่อ-สกุล:</strong> 
+                                <strong className="text-[11px] shrink-0 mr-1 font-bold">ชื่อ-สกุล:</strong> 
                                 {patient && patient.fname ? (
-                                    <div className="text-[18px] font-black px-1 uppercase tracking-tight leading-none flex-1 min-w-0 flex items-baseline">
+                                    <div className="text-[13px] font-black px-1 uppercase tracking-tight leading-none flex-1 min-w-0 flex items-baseline">
                                         <span className="truncate">{`${safeStr(patient.pname)}${safeStr(patient.fname)} ${safeStr(patient.lname)}`}</span>
                                         {patient.birthday && calculateAge(patient.birthday) !== '' && (
-                                            <span className="ml-1.5 shrink-0 whitespace-nowrap text-[16px]">อายุ {calculateAge(patient.birthday)} ปี</span>
+                                            <span className="ml-1 shrink-0 whitespace-nowrap text-[11px]">อายุ {calculateAge(patient.birthday)} ปี</span>
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="text-[18px] font-black px-1 uppercase tracking-tight leading-none truncate flex-1 min-w-0">
+                                    <div className="text-[13px] font-black px-1 uppercase tracking-tight leading-none truncate flex-1 min-w-0">
                                         .......................................
                                     </div>
                                 )}
                             </div>
-                            <div className="text-[15px] shrink-0 font-bold whitespace-nowrap">
-                                <strong>HN:</strong> <span className="text-[19px] font-black ml-1">{patient && patient.hn ? safeStr(patient.hn) : '.......'}</span>
+                            <div className="text-[11px] shrink-0 font-bold whitespace-nowrap">
+                                <strong>HN:</strong> <span className="text-[14px] font-black ml-1">{patient && patient.hn ? safeStr(patient.hn) : '.......'}</span>
                             </div>
                         </div>
                         
                         {/* แถวที่ 2: สิทธิ และ นน. */}
-                        <div className="flex justify-between items-end border-b border-dotted border-black pb-1.5 gap-2">
+                        <div className="flex justify-between items-end border-b border-dotted border-black pb-0.5 gap-1">
                             <div className="flex items-baseline flex-1 min-w-0">
-                                <strong className="text-[15px] shrink-0 mr-1 font-bold">สิทธิ:</strong> 
-                                <div className="text-[18px] font-black px-1 uppercase tracking-tight leading-none truncate">
+                                <strong className="text-[11px] shrink-0 mr-1 font-bold">สิทธิ:</strong> 
+                                <div className="text-[13px] font-black px-1 uppercase tracking-tight leading-none truncate">
                                     {appt.privilege ? safeStr(appt.privilege) : '.......................................'}
                                 </div>
                             </div>
-                            <div className="text-[15px] shrink-0 font-bold whitespace-nowrap">
-                                <strong>นน.:</strong> <span className="text-[19px] font-black mx-1">{appt.weight ? safeStr(appt.weight) : '...'}</span> กก.
+                            <div className="text-[11px] shrink-0 font-bold whitespace-nowrap">
+                                <strong>นน.:</strong> <span className="text-[14px] font-black mx-1">{appt.weight ? safeStr(appt.weight) : '...'}</span> กก.
                             </div>
                         </div>
 
-                        <div className="flex justify-between pt-1.5 text-[10.5px] font-medium text-black">
+                        <div className="flex justify-between pt-0.5 text-[8.5px] font-medium text-black">
                             <div><strong className="font-bold">วันที่รับบริการ:</strong> {formatThaiDate(appt.visitDate, {day:'numeric', month:'long', year:'numeric'})}</div>
                             <div><strong className="font-bold">เวลาพิมพ์:</strong> {new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</div>
                         </div>
                     </div>
 
-                    <div className="mb-3 relative z-10">
-                        <div className="bg-gray-100 border border-black px-2 py-1 flex items-center gap-2 print:bg-transparent">
-                            <span className="text-[13px] font-black uppercase tracking-widest leading-none text-black">แผนการรักษา (Wound Care)</span>
+                    <div className="mb-1.5 relative z-10">
+                        <div className="bg-gray-100 border border-black px-1 py-0.5 flex items-center gap-1 print:bg-transparent">
+                            <span className="text-[9px] font-black uppercase tracking-widest leading-none text-black">แผนการรักษา (Wound Care)</span>
                         </div>
-                        <table className="w-full text-[13px] border-collapse border-x border-b border-black">
+                        <table className="w-full text-[9px] border-collapse border-x border-b border-black">
                             <tbody>
                                 <tr className="border-b border-black">
-                                    <td className="px-3 py-2 border-r border-black w-1/2 text-black font-bold"><strong>ลักษณะ:</strong> {appt.woundType ? safeStr(appt.woundType.split(' ')[0]) : '-'}</td>
-                                    <td className="px-3 py-2 text-black font-bold"><strong>ตำแหน่ง:</strong> {appt.woundLocation ? safeStr(appt.woundLocation) : '-'}</td>
+                                    <td className="px-1.5 py-0.5 border-r border-black w-1/2 text-black font-bold"><strong>ลักษณะ:</strong> {appt.woundType ? safeStr(appt.woundType.split(' ')[0]) : '-'}</td>
+                                    <td className="px-1.5 py-0.5 text-black font-bold"><strong>ตำแหน่ง:</strong> {appt.woundLocation ? safeStr(appt.woundLocation) : '-'}</td>
                                 </tr>
                                 <tr>
-                                    <td className="px-3 py-2 border-r border-black font-black text-black"><strong>ทำแผล:</strong> {safeStr(appt.dressingFrequency)}</td>
-                                    <td className="px-3 py-2 font-black text-black"><strong>จำนวน:</strong> {appt.stitchCount ? `${appt.stitchCount} เข็ม` : '-'}</td>
+                                    <td className="px-1.5 py-0.5 border-r border-black font-black text-black"><strong>ทำแผล:</strong> {safeStr(appt.dressingFrequency)}</td>
+                                    <td className="px-1.5 py-0.5 font-black text-black"><strong>จำนวน:</strong> {appt.stitchCount ? `${appt.stitchCount} เข็ม` : '-'}</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
 
                     {vaccines.map((cat) => (
-                        <div key={cat} className="mb-2.5 animate-in fade-in duration-500 relative z-10">
-                            <div className="bg-gray-100 border border-black px-2 py-1 flex items-center gap-2 print:bg-transparent">
-                                <span className="text-[13px] font-black uppercase tracking-widest leading-none text-black">{getCategoryTitle(cat)}</span>
+                        <div key={cat} className="mb-1 relative z-10">
+                            <div className="bg-gray-100 border border-black px-1 py-0.5 flex items-center gap-1 print:bg-transparent">
+                                <span className="text-[9px] font-black uppercase tracking-widest leading-none text-black">{getCategoryTitle(cat)}</span>
                             </div>
-                            <table className="w-full text-[12px] border-collapse border-x border-b border-black">
+                            <table className="w-full text-[9px] border-collapse border-x border-b border-black">
                                 <thead>
-                                    <tr className="bg-gray-50 border-b border-black font-black text-[11px]">
-                                        <th className="px-2 py-1.5 text-left border-r border-black text-black">รายการ</th>
-                                        <th className="px-2 py-1.5 text-left border-r border-black w-32 text-black text-center">วันที่นัด</th>
-                                        <th className="px-2 py-1.5 text-center w-16 text-black italic">ผู้ฉีด</th>
+                                    <tr className="bg-gray-50 border-b border-black font-black text-[8px]">
+                                        <th className="px-1 py-[2px] text-left border-r border-black text-black">รายการ</th>
+                                        <th className="px-1 py-[2px] text-left border-r border-black w-20 text-black text-center">วันที่นัด</th>
+                                        <th className="px-1 py-[2px] text-center w-10 text-black italic">ผู้ฉีด</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {appt.calculatedDates.filter(d => d.category === cat).map((item, idx) => (
                                         <tr key={idx} className="border-b border-black last:border-b-0 leading-tight">
-                                            <td className="px-2 py-1.5 border-r border-black leading-tight">
-                                                <div className="font-black text-black">{safeStr(item.label)}</div>
-                                                <div className="text-[10px] text-black font-bold leading-none mt-0.5">{safeStr(item.desc)}</div>
+                                            <td className="px-1 py-[2px] border-r border-black leading-tight">
+                                                <div className="font-black text-black text-[9px]">{safeStr(item.label)}</div>
+                                                <div className="text-[7px] text-black font-bold leading-none mt-0.5">{safeStr(item.desc)}</div>
                                             </td>
-                                            <td className="px-2 py-1.5 border-r border-black font-black text-[14px] text-black text-center">
+                                            <td className="px-1 py-[2px] border-r border-black font-black text-[10px] text-black text-center">
                                                 {formatThaiDate(item.date, { day: 'numeric', month: 'short', year: '2-digit' })}
                                             </td>
-                                            <td className="px-2 py-1.5 text-center text-[10px] text-black font-black italic">
+                                            <td className="px-1 py-[2px] text-center text-[7.5px] text-black font-black italic">
                                                 {safeStr(item.status) === 'ฉีดแล้ว' ? '✓ ฉีด' : '........'}
                                             </td>
                                         </tr>
@@ -337,26 +337,26 @@
                     ))}
 
                     {appt.stitchRemovalDate && (
-                        <div className="border-[2px] border-black p-3 text-center rounded-[15px] bg-gray-50 print:bg-transparent mb-4 shadow-sm border-dashed relative z-10">
-                            <div className="text-[13px] font-black uppercase text-black flex items-center justify-center gap-2 leading-none mb-1.5">กำหนดนัดตัดไหม (Suture Removal)</div>
-                            <div className="text-[25px] font-black text-black underline decoration-double underline-offset-4 tracking-tighter">
+                        <div className="border-[1.5px] border-black p-1 text-center rounded-[8px] bg-gray-50 print:bg-transparent mb-1 shadow-sm border-dashed relative z-10">
+                            <div className="text-[9px] font-black uppercase text-black flex items-center justify-center gap-1 leading-none mb-0.5">กำหนดนัดตัดไหม (Stitches Off)</div>
+                            <div className="text-[14px] font-black text-black underline decoration-double underline-offset-2 tracking-tighter">
                                 {formatThaiDate(appt.stitchRemovalDate, { day: 'numeric', month: 'long', year: 'numeric' })}
                             </div>
                         </div>
                     )}
 
-                    <div className="mt-auto flex flex-col gap-1.5 relative z-10">
-                        <div className="text-center py-2">
-                            <div className="text-[17px] font-black text-black flex items-center justify-center gap-2 uppercase tracking-[0.05em] leading-none">"เจ็บป่วยฉุกเฉินโทร 1669 ตลอด 24 ชม."</div>
+                    <div className="mt-auto flex flex-col gap-0.5 relative z-10">
+                        <div className="text-center py-0.5">
+                            <div className="text-[11px] font-black text-black flex items-center justify-center gap-1 uppercase tracking-[0.02em] leading-none">"เจ็บป่วยฉุกเฉินโทร 1669 ตลอด 24 ชม."</div>
                         </div>
-                        <div className="flex justify-between items-end text-[11px] pt-2 border-t border-black opacity-100 leading-none">
-                            <div className="italic font-bold leading-tight space-y-1 text-black">
+                        <div className="flex justify-between items-end text-[8px] pt-1 border-t border-black opacity-100 leading-none">
+                            <div className="italic font-bold leading-tight space-y-0.5 text-black">
                                 <div className="text-black font-black">* กรุณานำใบนัดใบนี้มาด้วยทุกครั้งที่เข้ารับบริการ</div>
-                                <div className="text-black font-mono tracking-tighter uppercase text-[10px]">CHOAIRONG HOSPITAL | WOUNDCARE-V-ONLINE</div>
+                                <div className="text-black font-mono tracking-tighter uppercase text-[7px]">CHOAIRONG HOSPITAL | WOUNDCARE-V-ONLINE</div>
                             </div>
-                            <div className="text-center min-w-[110px] text-black">
-                                <div className="font-black uppercase text-[12px] border-b-[1.5px] border-black pb-0.5 mb-1">{safeStr(appt.staffName)}</div>
-                                <div className="text-[10px] font-black uppercase tracking-widest leading-none">Authorized</div>
+                            <div className="text-center min-w-[80px] text-black">
+                                <div className="font-black uppercase text-[9px] border-b-[1px] border-black pb-[2px] mb-[2px]">{safeStr(appt.staffName)}</div>
+                                <div className="text-[7px] font-black uppercase tracking-widest leading-none">Authorized</div>
                             </div>
                         </div>
                     </div>
